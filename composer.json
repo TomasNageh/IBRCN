@@ -1,0 +1,12 @@
+{
+    "name": "ibrcn/bookengine",
+    "description": "IBRCN bookstore application",
+    "type": "project",
+    "require": {
+        "php": ">=8.0",
+        "dompdf/dompdf": "^2.0"
+    },
+    "config": {
+        "sort-packages": true
+    }
+}
