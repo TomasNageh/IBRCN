@@ -7,9 +7,6 @@
  * DESIGN PATTERN: None — procedural middleware-style checks before controllers run.
  */
 
-require_once __DIR__ . '/Session.php';
-require_once __DIR__ . '/RoleRedirector.php';
-
 /**
  * AuthMiddleware
  *
@@ -18,11 +15,39 @@ require_once __DIR__ . '/RoleRedirector.php';
  */
 class AuthMiddleware
 {
+    private static function ensureStarted(): void
+    {
+        if (session_status() !== PHP_SESSION_ACTIVE) {
+            session_start();
+        }
+    }
+
+    private static function isAuthenticated(): bool
+    {
+        return isset($_SESSION['user'], $_SESSION['role']);
+    }
+
+    private static function redirectByRole(string $role): void
+    {
+        if ($role === 'Owner') {
+            header('Location: owner.php');
+            exit;
+        }
+
+        if ($role === 'Admin') {
+            header('Location: admin.php');
+            exit;
+        }
+
+        header('Location: reader.php');
+        exit;
+    }
+
     public static function requireAuthenticated(): void
     {
-        Session::ensureStarted();
+        self::ensureStarted();
 
-        if (!Session::isAuthenticated()) {
+        if (!self::isAuthenticated()) {
             header('Location: login.php');
             exit;
         }
@@ -30,25 +55,25 @@ class AuthMiddleware
 
     public static function requireGuest(): void
     {
-        Session::ensureStarted();
+        self::ensureStarted();
 
-        if (Session::isAuthenticated()) {
-            RoleRedirector::redirectByRole((string) $_SESSION['role']);
+        if (self::isAuthenticated()) {
+            self::redirectByRole((string) $_SESSION['role']);
         }
     }
 
     public static function requireRole(array|string $allowedRoles): void
     {
-        Session::ensureStarted();
+        self::ensureStarted();
 
-        if (!Session::isAuthenticated()) {
+        if (!self::isAuthenticated()) {
             header('Location: login.php');
             exit;
         }
 
         $roles = is_array($allowedRoles) ? $allowedRoles : array($allowedRoles);
         if (!in_array((string) $_SESSION['role'], $roles, true)) {
-            RoleRedirector::redirectByRole((string) $_SESSION['role']);
+            self::redirectByRole((string) $_SESSION['role']);
         }
     }
 }

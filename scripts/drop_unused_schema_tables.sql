@@ -2,6 +2,7 @@
 -- Pair script: restore_dropped_experimental_tables.sql brings them back (structure only).
 -- Core tables kept: users, stores, books, store_inventory, cart_items, orders, order_items,
 -- audit_log, notifications, reading_clubs, club_members, club_member_current_read, club_discussion_threads.
+-- Also drops legacy compat-only tables from config/legacy_bookengine_compat.sql: signup, member.
 
 USE ibrcn;
 
@@ -35,6 +36,8 @@ DROP TABLE IF EXISTS
   holds,
   book_clubs,
   events,
-  tax_rates;
+  tax_rates,
+  signup,
+  `member`;
 
 SET FOREIGN_KEY_CHECKS = 1;

@@ -10,23 +10,36 @@ session_start();
 
 require_once __DIR__ . '/../app/bootstrap.php';
 require_once __DIR__ . '/../app/services/AuthMiddleware.php';
-require_once __DIR__ . '/../app/services/OwnerOrdersService.php';
+require_once __DIR__ . '/../app/models/Book.php';
+require_once __DIR__ . '/../app/models/Order.php';
+require_once __DIR__ . '/../app/services/NotificationService.php';
 
 AuthMiddleware::requireRole('Owner');
 
 $database = DB::getInstance();
-$ownerOrders = new OwnerOrdersService($database);
+$orderModel = new Order($database, new Book($database));
+$notifier = new NotificationService(null, null, $database);
 
 $errorMessage = '';
 $successMessage = '';
 
-$postResult = $ownerOrders->handlePost($_POST, (int) $_SESSION['user_id']);
-$errorMessage = $postResult['errorMessage'];
-$successMessage = $postResult['successMessage'];
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['mark_ready'], $_POST['order_id'])) {
+    $orderId = (int) $_POST['order_id'];
+    $result = $orderModel->markReady((int) $_SESSION['user_id'], $orderId);
+    if ($result['ok']) {
+        $successMessage = (string) $result['message'];
+        try {
+            $notifier->onOrderMarkedReady((int) $_SESSION['user_id'], $orderId);
+        } catch (Throwable $e) {
+            error_log('Notification on order ready: ' . $e->getMessage());
+        }
+    } else {
+        $errorMessage = (string) $result['message'];
+    }
+}
 
-$viewData = $ownerOrders->loadViewData((int) $_SESSION['user_id']);
-$orders = $viewData['orders'];
-$orderItems = $viewData['orderItems'];
-$inAppNotifications = $viewData['inAppNotifications'];
+$orders = $orderModel->getOwnerOrders((int) $_SESSION['user_id']);
+$orderItems = $orderModel->getOwnerOrderItems((int) $_SESSION['user_id']);
+$inAppNotifications = $notifier->listInApp((int) $_SESSION['user_id']);
 
 require_once __DIR__ . '/../app/views/owner/orders.php';

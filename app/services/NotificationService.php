@@ -45,13 +45,13 @@ class NotificationService
     }
 
     /**
-     * Returns the backing in-app notification persistence helper for mailbox dashboards needing raw queue inspection hooks.
+     * Lists persisted in-app notifications for a user (same data as former `InAppNotificationStore::listFor()`).
      *
-     * @return InAppNotificationStore Shared instance constructed alongside this notifier for consistent PDO references.
+     * @return list<array<string, mixed>>
      */
-    public function getInAppStore(): InAppNotificationStore
+    public function listInApp(int $userId): array
     {
-        return $this->inApp;
+        return $this->inApp->listFor($userId);
     }
 
     /**

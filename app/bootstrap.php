@@ -9,5 +9,4 @@
 
 require_once __DIR__ . '/../config/config.php';
 require_once __DIR__ . '/patterns/DB.php';
-require_once __DIR__ . '/services/Session.php';
-require_once __DIR__ . '/services/RoleRedirector.php';
+require_once __DIR__ . '/services/AuthMiddleware.php';
