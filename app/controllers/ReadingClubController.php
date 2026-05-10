@@ -7,8 +7,6 @@
  * DESIGN PATTERN: None — controller calls models/services; SQL remains inside `ReadingClub`/`User` models.
  */
 
-require_once __DIR__ . '/../services/Session.php';
-
 // Handles request/response coordination for the Reading Clubs module without embedding SQL or HTML (controller layer).
 class ReadingClubController
 {
@@ -32,7 +30,9 @@ class ReadingClubController
      */
     public function handleRequest(): array
     {
-        Session::ensureStarted();
+        if (session_status() !== PHP_SESSION_ACTIVE) {
+            session_start();
+        }
 
         $this->readingClubModel->ensureSchema();
 

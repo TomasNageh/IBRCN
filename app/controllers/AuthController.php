@@ -7,13 +7,38 @@
  * DESIGN PATTERN: None — coordinates `User` model + `Session`/`RoleRedirector` helpers + optional notifications on register.
  */
 
-require_once __DIR__ . '/../services/Session.php';
-require_once __DIR__ . '/../services/RoleRedirector.php';
-
 // Orchestrates credential verification and session population for IBRCN roles without embedding HTML (controller layer).
 class AuthController
 {
     private User $userModel;
+
+    private static function ensureStarted(): void
+    {
+        if (session_status() !== PHP_SESSION_ACTIVE) {
+            session_start();
+        }
+    }
+
+    private static function isAuthenticated(): bool
+    {
+        return isset($_SESSION['user'], $_SESSION['role']);
+    }
+
+    private static function redirectByRole(string $role): void
+    {
+        if ($role === 'Owner') {
+            header('Location: owner.php');
+            exit;
+        }
+
+        if ($role === 'Admin') {
+            header('Location: admin.php');
+            exit;
+        }
+
+        header('Location: reader.php');
+        exit;
+    }
 
     /**
      * @param User $userModel Injected user persistence gateway constructed by the calling endpoint with shared PDO.
@@ -32,9 +57,9 @@ class AuthController
      */
     public function showLogin(string $error = ''): void
     {
-        Session::ensureStarted();
-        if (Session::isAuthenticated()) {
-            RoleRedirector::redirectByRole((string) $_SESSION['role']);
+        self::ensureStarted();
+        if (self::isAuthenticated()) {
+            self::redirectByRole((string) $_SESSION['role']);
         }
 
         $errorMessage = $error;
@@ -51,9 +76,9 @@ class AuthController
      */
     public function login(): void
     {
-        Session::ensureStarted();
-        if (Session::isAuthenticated()) {
-            RoleRedirector::redirectByRole((string) $_SESSION['role']);
+        self::ensureStarted();
+        if (self::isAuthenticated()) {
+            self::redirectByRole((string) $_SESSION['role']);
         }
 
         if (!isset($_POST['username']) || !isset($_POST['password'])) {
@@ -78,7 +103,7 @@ class AuthController
         $_SESSION['role'] = $user['role'];
         $this->auditLoginSuccess((int) $user['user_id'], (string) $user['role']);
         $this->hydrateCartForReader((int) $user['user_id'], (string) $user['role']);
-        RoleRedirector::redirectByRole((string) $user['role']);
+        self::redirectByRole((string) $user['role']);
     }
 
     /**
@@ -89,9 +114,9 @@ class AuthController
      */
     public function showRegister(string $error = ''): void
     {
-        Session::ensureStarted();
-        if (Session::isAuthenticated()) {
-            RoleRedirector::redirectByRole((string) $_SESSION['role']);
+        self::ensureStarted();
+        if (self::isAuthenticated()) {
+            self::redirectByRole((string) $_SESSION['role']);
         }
 
         $errorMessage = $error;
@@ -110,9 +135,9 @@ class AuthController
      */
     public function register(): void
     {
-        Session::ensureStarted();
-        if (Session::isAuthenticated()) {
-            RoleRedirector::redirectByRole((string) $_SESSION['role']);
+        self::ensureStarted();
+        if (self::isAuthenticated()) {
+            self::redirectByRole((string) $_SESSION['role']);
         }
 
         $username = trim((string) ($_POST['username'] ?? ''));
@@ -159,7 +184,7 @@ class AuthController
         $_SESSION['role'] = $role;
         $this->auditRegisterSuccess((int) $userId, $role);
         $this->hydrateCartForReader((int) $userId, $role);
-        RoleRedirector::redirectByRole((string) $role);
+        self::redirectByRole((string) $role);
     }
 
     /**

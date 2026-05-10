@@ -10,7 +10,6 @@
 require_once __DIR__ . '/../app/bootstrap.php';
 require_once __DIR__ . '/../app/services/AuthMiddleware.php';
 require_once __DIR__ . '/../app/models/OwnerInventory.php';
-require_once __DIR__ . '/../app/controllers/BookstoreController.php';
 
 AuthMiddleware::requireRole('Owner');
 
@@ -22,11 +21,35 @@ $errorMessage = '';
 $successMessage = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['upload_csv'])) {
-    $result = (new BookstoreController())->handleCSVUpload();
-    if ($result['ok']) {
-        $successMessage = $result['message'];
+    if (!isset($_FILES['csv_file'])) {
+        $errorMessage = 'Upload failed. Please try again.';
+    } elseif ($_FILES['csv_file']['error'] !== UPLOAD_ERR_OK) {
+        $errorMessage = 'Upload failed. Please try again.';
     } else {
-        $errorMessage = $result['message'];
+        $allowedTypes = array('text/csv', 'text/plain', 'application/vnd.ms-excel');
+        $actualType = mime_content_type($_FILES['csv_file']['tmp_name']);
+        if (!in_array($actualType, $allowedTypes, true)) {
+            $errorMessage = 'Only CSV files are accepted.';
+        } else {
+            $maxSizeBytes = 10 * 1024 * 1024; // 10 MB in bytes
+            if ((int) $_FILES['csv_file']['size'] > $maxSizeBytes) {
+                $errorMessage = 'File exceeds the 10 MB size limit.';
+            } else {
+                $uploadsDir = dirname(__DIR__) . '/uploads/inventory_imports';
+                if (!is_dir($uploadsDir)) {
+                    @mkdir($uploadsDir, 0775, true);
+                }
+
+                $safeName = 'inventory_import_' . date('Ymd_His') . '_' . bin2hex(random_bytes(4)) . '.csv';
+                $destinationPath = $uploadsDir . DIRECTORY_SEPARATOR . $safeName;
+
+                if (!move_uploaded_file($_FILES['csv_file']['tmp_name'], $destinationPath)) {
+                    $errorMessage = 'Upload failed. Please try again.';
+                } else {
+                    $successMessage = 'CSV uploaded successfully.';
+                }
+            }
+        }
     }
 }
 

@@ -12,15 +12,16 @@ require_once __DIR__ . '/../app/bootstrap.php';
 require_once __DIR__ . '/../app/services/AuthMiddleware.php';
 require_once __DIR__ . '/../app/models/Book.php';
 require_once __DIR__ . '/../app/models/Order.php';
+require_once __DIR__ . '/../app/models/User.php';
+require_once __DIR__ . '/../app/models/ReadingClub.php';
 require_once __DIR__ . '/../app/services/NotificationService.php';
-require_once __DIR__ . '/../app/services/ReaderClubDashboardService.php';
 
 AuthMiddleware::requireAuthenticated();
 
 $database = DB::getInstance();
 $orderModel = new Order($database, new Book($database));
 $notifier = new NotificationService(null, null, $database);
-$inAppNotifications = $notifier->getInAppStore()->listFor((int) $_SESSION['user_id']);
+$inAppNotifications = $notifier->listInApp((int) $_SESSION['user_id']);
 
 $errorMessage = '';
 $successMessage = '';
@@ -39,7 +40,18 @@ $orderItems = $orderModel->getReaderOrderItems((int) $_SESSION['user_id']);
 
 $myClubs = array();
 if ((string) ($_SESSION['role'] ?? '') === 'Reader') {
-    $myClubs = (new ReaderClubDashboardService($database))->getReaderClubs((int) $_SESSION['user_id']);
+    $readerUserId = (int) $_SESSION['user_id'];
+    $readerClub = new ReadingClub($database);
+    $readerClub->ensureSchema();
+    $user = (new User($database))->findById($readerUserId);
+    if ($user) {
+        $myClubs = $readerClub->findClubsForUser((int) $user['user_id'], (string) $user['email']);
+        $readsByClub = $readerClub->getMemberReadsForClubs(array_column($myClubs, 'club_id'));
+        foreach ($myClubs as &$clubRow) {
+            $clubRow['member_reads'] = $readsByClub[(int) $clubRow['club_id']] ?? array();
+        }
+        unset($clubRow);
+    }
 }
 
 require_once __DIR__ . '/../app/views/reader/orders.php';
