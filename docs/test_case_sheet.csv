@@ -1,0 +1,10 @@
+No,Function name,What we put in (input),What we expect,PHPUnit automatic test
+1,normalizeIncomingItemForAdd,book_id = 0 (wrong id),null (reject),Yes
+2,normalizeIncomingItemForAdd,book_id = 1 but title is only spaces,null (reject),Yes
+3,normalizeIncomingItemForAdd,book ok but price = 0,null (reject),Yes
+4,normalizeIncomingItemForAdd,book ok but image is empty text,null (reject),Yes
+5,normalizeIncomingItemForAdd,all fields correct,array with book data quantity at least 1,Yes
+6,normalizeIncomingCart,input is text not array,empty array [],Yes
+7,normalizeIncomingCart,mix: one bad item + one good item,only the good item in result,Yes
+8,normalizeIncomingCart,three bad rows (wrong id empty title empty image),empty array [],Yes
+9,normalizeIncomingCart,use bookId name and quantity -5,one row quantity becomes 1,Yes
